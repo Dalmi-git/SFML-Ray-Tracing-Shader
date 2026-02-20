@@ -29,7 +29,7 @@ uniform vec3 pos[MAX_LEN];
 uniform vec3 size[MAX_LEN];
 uniform float extra[MAX_LEN];
 
-const int MAX_REF = 8;
+const int MAX_REF = 64;
 
 struct rayHit{
     vec2 dist;
@@ -63,14 +63,14 @@ mat2 rot(float a) {
 }
 
 vec3 skybox(vec3 rd, in vec3 light){
-    return vec3(0.);
+    //return vec3(0.);
     if(rd.z > 0.9) rd.z = 0.9 - (rd.z - 0.9);
     vec2 uv = vec2(atan(rd.x, abs(rd.y)), -asin(abs(rd.z))*4.+1.9);
     uv /= 3.14159265;
     uv = uv* 0.5 + 0.5;
     vec3 col = (texture(u_skybox, uv).rgb);
     if (length(col) > length(vec3(0.7))) col *= (length(col) - length(vec3(0.7))) + 1.;
-    vec3 sun = vec3(1.0, 1.0, 0.8);
+    vec3 sun = vec3(1.0, 1.0, 0.9);
     sun *= max(0.0, pow(dot(rd, light), 2048.0))*1000.;
     return sun + col*0.8;
 }
@@ -176,7 +176,7 @@ void materialRay(inout vec3 ro, inout vec3 rd, in rayHit ray){
         case 2:{ // glass
             if(dot(rd, ray.normal) > -1. + fract(random())*0.5){
                 ro = ro + rd * ray.dist.x + 0.00001;
-                rd = normalize(reflect(rd, ray.normal));
+                rd = reflect(rd, ray.normal);
             } else{
                 ro = ro + rd * ray.dist.y + 0.00001;
                 rd = refract(rd, ray.normal, (1.0 / (1.0 - ray.color.a))); // refraction factor
@@ -185,12 +185,23 @@ void materialRay(inout vec3 ro, inout vec3 rd, in rayHit ray){
             //vec3 reflected = normalize(reflect(rd, ray.normal));
             break;
         }
-        case 3:{ // matte with roughness
+        case 3:{ // metallic matte with roughness
             ro = ro + rd * ray.dist.x + ray.normal * 0.00001;
             vec3 reflected = reflect(rd, ray.normal);
             vec3 r = randomOnSphere();
 	        vec3 diffuse = normalize(r * dot(r, ray.normal));
 	        rd = normalize(mix(diffuse, reflected, ray.color.a));
+            break;
+        }
+        case 4:{ // smooth matte with roughness
+            ro = ro + rd * ray.dist.x + ray.normal * 0.00001;
+
+            if(fract(random()) < ray.color.a && dot(rd, ray.normal) > -1. + fract(random())*0.5){
+                rd = reflect(rd, ray.normal); //reflect
+            } else {
+                vec3 r = randomOnSphere();
+	            rd = normalize(r * dot(r, ray.normal)); //diffuse
+            }
             break;
         }
     }

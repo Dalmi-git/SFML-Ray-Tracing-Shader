@@ -190,7 +190,7 @@ void materialRay(inout vec3 ro, inout vec3 rd, in rayHit ray){
             vec3 reflected = reflect(rd, ray.normal);
             vec3 r = randomOnSphere();
 	        vec3 diffuse = normalize(r * dot(r, ray.normal));
-	        rd = mix(diffuse, reflected, ray.color.a);
+	        rd = normalize(mix(diffuse, reflected, ray.color.a));
             break;
         }
     }

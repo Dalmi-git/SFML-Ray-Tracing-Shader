@@ -44,7 +44,7 @@ int main() {
     using namespace sf::Glsl;
     Object objects[obj_len] = {
         { 1, Vec4(0.8, 0.8, 0.8, 0), 1, Vec3(5., -5., 2.5), Vec3(2.5, 2.5, 2.5), 0. },
-        { 1, Vec4(0.85, 0.85, 0.85, 0.9), 3, Vec3(6., 14., 2.5), Vec3(2.5, 2.5, 2.5), 0. },
+        { 1, Vec4(0.85, 0.85, 0.85, 0.5), 3, Vec3(6., 14., 2.5), Vec3(2.5, 2.5, 2.5), 0. },
         { 2, Vec4(0.4, 0.4, 0.8, 0.0), 3, Vec3(9.5, 5.8, 1.5), Vec3(1.5, 1.5, 1.5), 0. },
         { 2, Vec4(0.95, 0.95, 0.95, 0.99), 3, Vec3(15.5, 7., 2.), Vec3(2., 17., 30.), 0. },
         { 2, Vec4(0.8, 0.4, 0.4, 0), 0, Vec3(-9., 0., 0.), Vec3(-9., 0., 5.), 1.5 },
@@ -67,7 +67,7 @@ int main() {
         cout << "Error: shader not loaded";
     }
 
-    sf::RenderWindow window(sf::VideoMode({ w, h }), "Ray Tracing", sf::Style::Titlebar | sf::Style::Close); //sf::State::Fullscreen
+    sf::RenderWindow window(sf::VideoMode({ w, h }), "Ray Tracing", sf::Style::Titlebar | sf::Style::Close);//, sf::State::Fullscreen);
     window.setFramerateLimit(60);
 
     sf::Mouse::setPosition(sf::Vector2i(w / 2, h / 2), window);
@@ -190,7 +190,7 @@ int main() {
 
         shader_1.setUniform("RT", RT);
 
-        if(stillFrames < 50){ // max sample parts limiter
+        if(stillFrames < (RT? 500 : 2)){ // max sample parts limiter
             if (stillFrames % 2 == 1)
             {
                 shader_1.setUniform("u_sample", firstTexture.getTexture());

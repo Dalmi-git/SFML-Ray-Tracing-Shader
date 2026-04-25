@@ -33,7 +33,7 @@ int main() {
     sf::Shader shader_1;
     bool RT = false;
     float mouseSensitivity = 0.001f;
-    float speed = 0.1;
+    float speed = 0.1, focus = 1.0, lens_size = 0.0;
     bool mouseHidden = true;
     int stillFrames = 1;
     sf::Vector2i localPosition;
@@ -54,6 +54,7 @@ int main() {
         { 2, Vec4(0.9, 0.9, 0.9, 0.9), 0, Vec3(9.5, 0.0, 1.5), Vec3(1.5, 1.5, 1.5), 0. },
         { 2, Vec4(0.975, 0.975, 0.975, 0.999), 3, Vec3(0., -10., 2.), Vec3(17., 2, 30.), 0. },
         { 2, Vec4(0.975, 0.975, 0.975, 0.999), 3, Vec3(0., 20., 2.), Vec3(17., 2, 30.), 0. },
+        { 1, Vec4(0.9, 0.9, 0.9, 0.1), 1, Vec3(0., -0., 0.0), Vec3(0.25, 0.25, 0.25), 0. },
     };
 
     sf::Texture skybox;
@@ -131,6 +132,10 @@ int main() {
                 else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LShift)) { wasdSS[5] = true; stillFrames = 1; }
                 if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Equal)) speed *= 10.;
                 else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Hyphen)) speed /= 10.;
+                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up)) {focus += 1.0; stillFrames = 1;}
+                else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down) && focus >= 0) {focus -= 1.0; stillFrames = 1;}
+                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Right)) {lens_size += 0.01; stillFrames = 1;}
+                else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left) && lens_size >= 0) {lens_size -= 0.01; stillFrames = 1;}
             }
         }
 
@@ -188,9 +193,11 @@ int main() {
         shader_1.setUniform("u_mouse", sf::Glsl::Vec2(mouseX * mouseSensitivity, mouseY * mouseSensitivity));
         shader_1.setUniform("u_pos", sf::Glsl::Vec3(position));
 
-        shader_1.setUniform("RT", RT);
+        shader_1.setUniform("u_RT", RT);
+        shader_1.setUniform("u_focus", focus);
+        shader_1.setUniform("u_lens_size", lens_size);
 
-        if(stillFrames < (RT? 500 : 2)){ // max sample parts limiter
+        if(stillFrames < (RT? 100 : 2)){ // max sample parts limiter
             if (stillFrames % 2 == 1)
             {
                 shader_1.setUniform("u_sample", firstTexture.getTexture());

@@ -17,10 +17,13 @@ uniform vec3 u_pos;
 
 uniform vec2 u_seed1;
 uniform vec2 u_seed2;
-uniform bool RT; // false == lite mode
+uniform bool u_RT; // false == lite mode
+uniform float u_focus;
+uniform float u_lens_size;
 
 // object data arrays
 #define MAX_LEN 20
+#define PI 3.14159265
 uniform float len;
 uniform float type[MAX_LEN];
 uniform vec4 color[MAX_LEN];
@@ -54,6 +57,19 @@ uint LCGStep(uint z, uint A, uint C);
 float random();
 vec3 randomOnSphere();
 vec2 hash22(vec2 p);
+vec2 randomInCircle();
+
+// two vec3 perpendiculars
+void vec3_perpendiculars(vec3 v, out vec3 u, out vec3 w) {
+    vec3 n = normalize(v);
+    
+    // Choose an axis that is not parallel to n.
+    // Using the Y axis (0,1,0) as default, fallback to X axis if n is nearly parallel to Y.
+    vec3 up = abs(n.y) < 0.999 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0);
+    
+    u = normalize(cross(up, n));
+    w = cross(n, u);
+}
 
 // for mouse controls
 mat2 rot(float a) {
@@ -139,10 +155,22 @@ void main() {
 	R_STATE.w = uint(u_seed2.y + uvRes.y);
 
     // render cycle
-	int samples = RT? 10 : 1; // samples
+	int samples = u_RT? 30 : 1; // samples
     vec3 col = vec3(0.0);
     for(int i = 0; i < samples; i++) {
-        col += rayShader(ro, rd);
+
+        vec2 offset = randomInCircle()*u_lens_size; // not necessary when lens size is 0
+        vec3 tro = ro;
+
+        vec3 lens_x, lens_y;
+        vec3_perpendiculars(rd, lens_x, lens_y);
+
+        tro += offset.x * lens_x;
+        tro += offset.y * lens_y;
+
+        vec3 trd = normalize((rd*u_focus+ro)-tro);
+        
+        col += rayShader(tro, trd);
     }
     col /= float(samples);
 
@@ -219,7 +247,7 @@ rayHit ObjectAttributes(in vec3 ro, in vec3 rd, in rayHit ray, in int ind){
         case 7:{
             vec3 pos = vec3(ray.dist.x*rd + ro)*3.;
             pos.x += 0.3;
-            ray.color.xyz = vec3(0.5 + 0.5 * sin(pos.x), 0.5 + 0.5 * sin(pos.x + 2.), 0.5 + 0.5 * sin(pos.x + 4.))*128.5+1.25;
+            ray.color.xyz = vec3(0.5 + 0.5 * sin(pos.x), 0.5 + 0.5 * sin(pos.x + 2.), 0.5 + 0.5 * sin(pos.x + 4.))+1.25;
             break;
         }
         case 8:{
@@ -293,7 +321,7 @@ rayHit castRay(in vec3 ro, in vec3 rd, in vec3 light, out int ind){
 
     // sky and ground
     vec2 new_inter = vec2(groundIntersect(ro, rd, 0.));
-    if(new_inter.x < intersect.x && new_inter.x > 0.){intersect=new_inter; ind = -1; ray.mat = RT? 3 : 0;}
+    if(new_inter.x < intersect.x && new_inter.x > 0.){intersect=new_inter; ind = -1; ray.mat = u_RT? 3 : 0;}
 
     ray.dist = intersect;
     ray.color = color[ind];
@@ -459,4 +487,10 @@ vec2 hash22(vec2 p)
 	vec3 p3 = fract(vec3(p.xyx) * vec3(.1031, .1030, .0973));
 	p3 += dot(p3, p3.yzx+33.33);
 	return fract((p3.xx+p3.yz)*p3.zy);
+}
+
+vec2 randomInCircle() {
+    float angle = random() * 2.0 * PI;
+    float radius = sqrt(random());
+    return vec2(cos(angle) * radius, sin(angle) * radius);
 }
